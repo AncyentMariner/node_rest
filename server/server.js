@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const _ = require('lodash');
 const {mongoose} = require('./db/mongoose');
 const {ObjectID} = require('mongodb');
 const {Todo} = require('./models/todo');
@@ -22,7 +23,7 @@ app.post('/todos', (req, res) => {
   });
 });
 
-//GET
+//GET all
 app.get('/todos', (req, res) => {
   Todo.find().then((todos) => {
     res.send({todos});
@@ -33,7 +34,7 @@ app.get('/todos', (req, res) => {
   });
 });
 
-//get one by id
+//GET one by id
 app.get('/todos/:id', (req, res) => {
   let id = req.params.id;
 
@@ -57,6 +58,23 @@ app.get('/todos/:id', (req, res) => {
 //UPDATE
 
 //DELETE
+app.delete('/todos/:id', (req, res) => {
+  let id = req.params.id;
+
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send();
+  }
+
+  Todo.findByIdAndRemove(id).then((todo) => {
+    if (!todo) {
+      res.status(404).send();
+    }
+
+    res.send({todo});
+  }).catch((e) => {
+    return res.status(400).send();
+  });
+});
 
 
 //set port
