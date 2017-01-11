@@ -3,6 +3,7 @@ const request = require('supertest');
 const {ObjectID} = require('mongodb');
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {User} = require('./../models/user');
 const {dummyTodos, populateTodos, dummyUsers, populateUsers} = require('./seeds/seed');
 
 beforeEach(populateUsers);
@@ -33,7 +34,6 @@ describe('POST /todos', () => {
   });
 
   it('should not create a new todo when sending empty body data', (done) => {
-
     request(app)
       .post('/todos')
       .send({})
@@ -174,15 +174,62 @@ describe('UPDATE /todos/:id', () => {
 });
 
 describe('authentication checks', () => {
-  xit('should return user if authenticated', (done) => {
-    // request(app)
-    //   .get('/users/auth')
-    //   .expect()
-    //   .end(done);
+  it('should return user if authenticated', (done) => {
+    request(app)
+      .get('/users/auth')
+      .set('x-auth', dummyUsers[0].tokens[0].token)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body._id).toBe(dummyUsers[0]._id.toHexString());
+        expect(res.body.email).toBe(dummyUsers[0].email);
+      })
+      .end(done);
   });
 
-  xit('should 401 if unauthenticated', (done) => {
+  it('should 401 if unauthenticated', (done) => {
+    request(app)
+      .get('/users/auth')
+      .expect(401)
+      .expect((res) => {
+        expect(res.body).toEqual({});
+      })
+      .end(done);
+  });
+});
 
+describe('POST /users', () => {
+  it('should create a new user', (done) => {
+    let email = 'email@email.com';
+    let password = 'password1';
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(200)
+      .expect((res) => {
+        expect(res.headers['x-auth']).toExist();
+        expect(res.body._id).toExist();
+        expect(res.body.email).toBe(email);
+      })
+      .end(done);
   });
 
+  it('should return validation error if request is invalid', (done) => {
+    let email = 'email@email.com';
+    let password = '1';
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(400)
+      .end(done);
+  });
+
+  it('should not create user if email is already taken', (done) => {
+    request(app)
+      .post('/users')
+      .send({email: dummyUsers[0].email, password: 'password1'})
+      .expect(400)
+      .end(done);
+  });
 });
