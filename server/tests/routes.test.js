@@ -3,16 +3,10 @@ const request = require('supertest');
 const {ObjectID} = require('mongodb');
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {dummyTodos, populateTodos, dummyUsers, populateUsers} = require('./seeds/seed');
 
-const dummyTodos = [{_id: new ObjectID, text: 'eat something'},
-{_id: new ObjectID, text: 'pet my cats'},
-{_id: new ObjectID, text: 'pick my nose'}];
-
-beforeEach((done) => {
-  Todo.remove({}).then(() => {
-    return Todo.insertMany(dummyTodos)
-  }).then(() => done());
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
   it('should post a new todo', (done) => {
@@ -103,17 +97,16 @@ describe('DELETE /todos/:id', () => {
       .expect((res) => {
         expect(res.body.todo._id).toBe(deleteId);
       })
-      .end(done)
-      // .end((err, res) => {
-      //   // if (err) {
-      //   //   return done(err);
-      //   // }
-      //
-      //   Todo.findById(deleteId).then((thing) => {
-      //     expect(thing).toNotExist();
-      //     done();
-      //   }).catch(e) => done(e);
-      // });
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(deleteId).then((todo) => {
+          expect(todo).toNotExist();
+          done();
+        }).catch((e) => done(e));
+    });
   });
 
   it('should return 404 is todo not found', (done) => {
@@ -134,7 +127,62 @@ describe('DELETE /todos/:id', () => {
 });
 
 describe('UPDATE /todos/:id', () => {
-  xit('should update todo by id', (done) => {
+  it('should update todo by id', (done) => {
+    let id = dummyTodos[2]._id;
+    let text = 'this is changed';
+
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({
+        completed: true,
+        text: text
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(true);
+        expect(res.body.todo.completedAt).toBeA('number');
+      })
+      .end(done)
+  });
+
+  it('should change completed from false to true and update completedAt', (done) => {
+    let id = dummyTodos[2]._id.toHexString();
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({completed: true})
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.completed).toBe(true);
+        expect(res.body.todo.completedAt).toBeA('number');
+      })
+      .end(done);
+  });
+
+  it('should changed completed property from true to false and change completedAt to null', (done) => {
+    let id = dummyTodos[0]._id.toHexString();
+    request(app)
+      .patch(`/todos/${id}`)
+      .send({completed: false})
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.completed).toBe(false);
+        expect(res.body.todo.completedAt).toBe(null);
+      })
+      .end(done);
+  });
+});
+
+describe('authentication checks', () => {
+  xit('should return user if authenticated', (done) => {
+    // request(app)
+    //   .get('/users/auth')
+    //   .expect()
+    //   .end(done);
+  });
+
+  xit('should 401 if unauthenticated', (done) => {
 
   });
+
 });
