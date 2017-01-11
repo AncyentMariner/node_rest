@@ -17,21 +17,28 @@ let dummyUsers = [{
 }, {
   _id: userTwoId,
   email: 'thing2@email.com',
-  password: 'userTwoPass'
+  password: 'userTwoPass',
+  tokens: [{
+    access: 'auth',
+    token: jwt.sign({_id: userTwoId, access:'auth'}, 'thing').toString()
+  }]
 }];
 
 const dummyTodos = [{
   _id: new ObjectID,
   text: 'eat something',
   completed: true,
-  completedAt: 1000
+  completedAt: 1000,
+  _creator: userOneId
 }, {
   _id: new ObjectID,
   text: 'pet my cats',
-  completed: false
+  completed: false,
+  _creator: userOneId
 }, {
   _id: new ObjectID,
-  text: 'pick my nose'
+  text: 'pick my nose',
+  _creator: userTwoId
 }];
 
 const populateTodos = (done) => {

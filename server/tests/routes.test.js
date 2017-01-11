@@ -15,6 +15,7 @@ describe('POST /todos', () => {
 
     request(app)
       .post('/todos')
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .send({text})
       .expect(200)
       .expect((res) => {
@@ -36,6 +37,7 @@ describe('POST /todos', () => {
   it('should not create a new todo when sending empty body data', (done) => {
     request(app)
       .post('/todos')
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .send({})
       .expect(400)
       .end((err) => {
@@ -55,16 +57,20 @@ describe('GET /todos', () => {
   it('should get all todos', (done) => {
     request(app)
       .get('/todos')
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
-        expect(res.body.todos.length).toBe(3);
+        expect(res.body.todos.length).toBe(2);
       })
       .end(done);
   });
+});
 
+describe('GET /users/:id', () => {
   it('should get one specific todo', (done) => {
     request(app)
       .get(`/todos/${dummyTodos[1]._id}`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body.todo.text).toBe(dummyTodos[1].text);
@@ -72,10 +78,19 @@ describe('GET /todos', () => {
       .end(done);
   });
 
+  it('should not return todo of another user', (done) => {
+    request(app)
+      .get(`/todos/${dummyTodos[2]._id}`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
+      .expect(404)
+      .end(done);
+  });
+
   it('should return a 404 if todo is not found', (done) => {
     let newId = new ObjectID;
     request(app)
       .get(`/todos/${newId}`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(404)
       .end(done);
   });
@@ -83,6 +98,7 @@ describe('GET /todos', () => {
   it('should return a 404 if id is invalid', (done) => {
     request(app)
       .get(`/todos/42`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(404)
       .end(done);
   });
@@ -93,6 +109,7 @@ describe('DELETE /todos/:id', () => {
     let deleteId = dummyTodos[0]._id.toHexString();
     request(app)
       .delete(`/todos/${deleteId}`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body.todo._id).toBe(deleteId);
@@ -114,6 +131,7 @@ describe('DELETE /todos/:id', () => {
 
     request(app)
       .delete(`/todos/${newThing}`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(404)
       .end(done);
   });
@@ -121,6 +139,7 @@ describe('DELETE /todos/:id', () => {
   it('should return 404 is todo has invalid id', (done) => {
     request(app)
       .delete('/todos/42')
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .expect(404)
       .end(done);
   });
@@ -133,6 +152,7 @@ describe('UPDATE /todos/:id', () => {
 
     request(app)
       .patch(`/todos/${id}`)
+      .set('x-auth', dummyUsers[1].tokens[0].token)
       .send({
         completed: true,
         text: text
@@ -150,6 +170,7 @@ describe('UPDATE /todos/:id', () => {
     let id = dummyTodos[2]._id.toHexString();
     request(app)
       .patch(`/todos/${id}`)
+      .set('x-auth', dummyUsers[1].tokens[0].token)
       .send({completed: true})
       .expect(200)
       .expect((res) => {
@@ -163,6 +184,7 @@ describe('UPDATE /todos/:id', () => {
     let id = dummyTodos[0]._id.toHexString();
     request(app)
       .patch(`/todos/${id}`)
+      .set('x-auth', dummyUsers[0].tokens[0].token)
       .send({completed: false})
       .expect(200)
       .expect((res) => {
@@ -249,7 +271,7 @@ describe('POST /users/login', () => {
         }
 
         User.findById(dummyUsers[1]._id).then((user) => {
-          expect(user.tokens[0]).toInclude({
+          expect(user.tokens[1]).toInclude({
             access: 'auth',
             token: res.headers['x-auth']
           });
